@@ -7,13 +7,22 @@ import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 contract oya{
 
     mapping(address => uint256) public addressToAmountFunded;
+    address public owner;
+    address[] public funders;
+
+    constructor() public{
+        owner=msg.sender;
+    }
 
     function pesa() public payable {
     uint256 minUSD = 50 * 10 ** 18;
 
     require(getConversionRate(msg.value)>=minUSD,"You need more ETH for this transaction to folllow");
 
-        addressToAmountFunded[msg.sender] += msg.value;
+    addressToAmountFunded[msg.sender] += msg.value;
+
+    funders.push(msg.sender);
+
     }
     function getVersion() public view returns(uint256)
     {
@@ -33,4 +42,21 @@ contract oya{
         uint256 ethAmountInUsd = (ethPrice * ethAmount)/1000000000000000000;
         return ethAmountInUsd;
     }
+    modifier onlyOwner{
+        require(msg.sender == owner);
+        _;
+    }
+    function withdraw() public onlyOwner{
+       // msg.sender.transfer(address(this).balance);
+        //uint256 ejectMinUSD = 10 * 10 ** 18;
+        //require(msg.sender == owner); //can't run if the owner has not authorized
+        payable(msg.sender).transfer(address(this).balance);
+        for(uint256 funderIndex=0; funderIndex<funders.length; funderIndex++){
+            address funder = funders[funderIndex];
+            addressToAmountFunded[funder] = 0;
+
+        }
+        funders = new address[](0);
+    }
+    
 }
